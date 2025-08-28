@@ -1,5 +1,7 @@
 ﻿
 
+using System.Text.Json.Serialization;
+
 namespace Tms.Api.Models;
 
 public class Course
@@ -11,5 +13,6 @@ public class Course
     public DateTime? CreatedOn { get; set; }
 
     // Navigation
+    [JsonIgnore]
     public ICollection<CourseCalendar> Calendars { get; set; } = new List<CourseCalendar>();
 }
