@@ -29,8 +29,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest req)
     {
-        var role = await _db.Roles.FirstOrDefaultAsync(r => r.RoleName == req.RoleName);
-        if (role == null) return BadRequest("Invalid role.");
+        var role = await _db.Roles.FirstAsync(r => r.RoleName == "Employee");
 
         if (await _db.Users.AnyAsync(u => u.Username == req.Username))
             return Conflict("Username already exists.");
@@ -47,7 +46,7 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         var token = GenerateJwt(user, role.RoleName);
-        return Ok(new AuthResponse(token, user.Username, role.RoleName));
+        return Ok(new AuthResponse(token, user.UserId, user.Username, role.RoleName)); // 👈 Added UserId
     }
 
     [HttpPost("login")]
@@ -62,8 +61,9 @@ public class AuthController : ControllerBase
             return Unauthorized("Invalid credentials.");
 
         var token = GenerateJwt(user, user.Role.RoleName);
-        return Ok(new AuthResponse(token, user.Username, user.Role.RoleName));
+        return Ok(new AuthResponse(token, user.UserId, user.Username, user.Role.RoleName)); // 👈 Added UserId
     }
+
 
     private string GenerateJwt(User user, string roleName)
     {

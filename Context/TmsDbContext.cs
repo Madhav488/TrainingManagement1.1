@@ -95,11 +95,20 @@ public class TmsDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("GETDATE()");
 
+            e.Property(x => x.IsActive)
+                .HasDefaultValue(true); // ensures new batches are active by default
+
             e.HasOne(x => x.Calendar)
                 .WithMany(cal => cal.Batches)
                 .HasForeignKey(x => x.CalendarId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict); // changed from NoAction
         });
+
+        // Global query filter for active batches
+        model.Entity<Batch>()
+            .HasQueryFilter(b => b.IsActive);
+        
+
 
         // --- Enrollment ---
         model.Entity<Enrollment>(e =>

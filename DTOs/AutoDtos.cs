@@ -1,5 +1,8 @@
 ﻿namespace Tms.Api.DTOs;
 
-public record RegisterRequest(string Username, string Password, string? Email, string RoleName);
+// Removed RoleName from RegisterRequest
+public record RegisterRequest(string Username, string Password, string? Email);
+
 public record LoginRequest(string Username, string Password);
-public record AuthResponse(string AccessToken, string Username, string Role);
+
+public record AuthResponse(string AccessToken, int UserId, string Username, string Role);

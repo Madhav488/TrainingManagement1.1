@@ -8,7 +8,7 @@ public class Enrollment
     public string? Status { get; set; }          // CHECK (Status IN (...)); nullable per SQL
     public int? ManagerId { get; set; }
     public DateTime? RequestedOn { get; set; }
-
+    //try with enum
     // Navigation
     public User User { get; set; } = null!;
     public User? Manager { get; set; }

@@ -48,5 +48,21 @@ public class DbSeeder
             _db.Users.Add(admin);
             await _db.SaveChangesAsync();
         }
+        if (!await _db.Users.AnyAsync(u => u.Username == "manager"))
+        {
+            var managerRoleId = await _db.Roles.Where(r => r.RoleName == "Manager")
+                .Select(r => r.RoleId).FirstAsync();
+
+            var manager = new User
+            {
+                Username = "manager",
+                Email = "manager@abc.com",
+                RoleId = managerRoleId,
+                CreatedOn = DateTime.UtcNow
+            };
+            manager.PasswordHash = _hasher.HashPassword(manager, "Manager@123");
+            _db.Users.Add(manager);
+            await _db.SaveChangesAsync();
+        }
     }
 }

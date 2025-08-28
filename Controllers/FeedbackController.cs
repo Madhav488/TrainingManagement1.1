@@ -21,12 +21,33 @@ public class FeedbackController : ControllerBase
     [Authorize(Roles = "Employee")]
     public async Task<ActionResult<Feedback>> Submit(int batchId, [FromBody] Feedback feedback)
     {
-        if (feedback.Rating is < 1 or > 5) return BadRequest("Rating must be 1-5.");
+        if (feedback.Rating is < 1 or > 5)
+            return BadRequest("Rating must be 1-5.");
+
+        var batch = await _db.Batch
+            .Include(b => b.Calendar)
+            .FirstOrDefaultAsync(b => b.BatchId == batchId);
+
+        if (batch == null)
+            return NotFound("Batch not found.");
+
+        // ✅ Ensure batch is finished
+        if (batch.Calendar.EndDate > DateTime.UtcNow.Date)
+            return BadRequest("Feedback can only be submitted after the batch has finished.");
+
+        // ✅ Prevent duplicate feedback from same user
+        bool alreadySubmitted = await _db.Feedback
+            .AnyAsync(f => f.BatchId == batchId && f.UserId == CurrentUserId);
+        if (alreadySubmitted)
+            return BadRequest("You have already submitted feedback for this batch.");
+
         feedback.UserId = CurrentUserId;
         feedback.BatchId = batchId;
         feedback.SubmittedOn = DateTime.UtcNow;
+
         _db.Feedback.Add(feedback);
         await _db.SaveChangesAsync();
+
         return CreatedAtAction(nameof(GetForBatch), new { batchId }, feedback);
     }
 
