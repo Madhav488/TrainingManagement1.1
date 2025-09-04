@@ -13,9 +13,9 @@ public class CalendarsController : ControllerBase
     private readonly TmsDbContext _db;
     public CalendarsController(TmsDbContext db) => _db = db;
 
-    // Anyone can view
+    
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize(Roles = "Administrator,Manager,Employee")]
     public async Task<ActionResult<IEnumerable<CourseCalendar>>> All()
         => await _db.CourseCalendar.AsNoTracking().ToListAsync();
 
@@ -30,7 +30,7 @@ public class CalendarsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [AllowAnonymous]
+    [Authorize(Roles = "Administrator,Manager,Employee")]
     public async Task<ActionResult<CourseCalendar>> Get(int id)
         => await _db.CourseCalendar.FindAsync(id) is { } c ? c : NotFound();
 

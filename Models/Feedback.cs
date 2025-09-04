@@ -10,6 +10,6 @@ public class Feedback
     public DateTime? SubmittedOn { get; set; }
 
     // Navigation
-    public User User { get; set; } = null!;
-    public Batch Batch { get; set; } = null!;
+    public User User { get; set; }
+    public Batch Batch { get; set; }
 }

@@ -18,7 +18,7 @@ public class EnrollmentsController : ControllerBase
     private int CurrentUserId =>
         int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
-    // 🔹 Employee: request enrollment
+ 
     [HttpPost("request/{batchId:int}")]
     [Authorize(Roles = "Employee")]
     public async Task<ActionResult<EnrollmentDto>> Request(int batchId)
@@ -40,10 +40,10 @@ public class EnrollmentsController : ControllerBase
         _db.Enrollment.Add(enroll);
         await _db.SaveChangesAsync();
 
-        // build DTO to return
+       
         var dto = new EnrollmentDto(
             enroll.EnrollmentId,
-            User.Identity!.Name!,   // logged-in Employee
+            User.Identity!.Name!,   
             batch.Calendar.Course.CourseName,
             batch.BatchName,
             enroll.Status!,
@@ -53,9 +53,9 @@ public class EnrollmentsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = enroll.EnrollmentId }, dto);
     }
 
-    // 🔹 Manager: approve
+
     [HttpPost("{id:int}/approve")]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Administrator")]
     public async Task<IActionResult> Approve(int id)
     {
         var e = await _db.Enrollment.FindAsync(id);
@@ -68,7 +68,7 @@ public class EnrollmentsController : ControllerBase
         return NoContent();
     }
 
-    // 🔹 Manager: reject
+    
     [HttpPost("{id:int}/reject")]
     [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Reject(int id)
@@ -83,7 +83,7 @@ public class EnrollmentsController : ControllerBase
         return NoContent();
     }
 
-    // 🔹 Manager + Admin: pending requests
+   
     [HttpGet("pending")]
     [Authorize(Roles = "Manager,Administrator")]
     public async Task<ActionResult<IEnumerable<EnrollmentDto>>> Pending()
@@ -123,7 +123,7 @@ public class EnrollmentsController : ControllerBase
         return Ok(result);
     }
 
-    // 🔹 Shared by all: get single enrollment
+    
     [HttpGet("{id:int}")]
     [Authorize(Roles = "Employee,Manager,Administrator")]
     public async Task<ActionResult<EnrollmentDto>> GetById(int id)

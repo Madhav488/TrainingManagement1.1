@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Tms.Api.Data;
 using Tms.Api.Models;
-
+using Tms.Api.Dtos;
 namespace Tms.Api.Controllers;
 
 [ApiController]
@@ -19,31 +19,30 @@ public class FeedbackController : ControllerBase
 
     [HttpPost("{batchId:int}")]
     [Authorize(Roles = "Employee")]
-    public async Task<ActionResult<Feedback>> Submit(int batchId, [FromBody] Feedback feedback)
+    public async Task<ActionResult<Feedback>> Submit(int batchId, [FromBody] FeedbackCreateDto dto)
     {
-        if (feedback.Rating is < 1 or > 5)
+        if (dto.Rating is < 1 or > 5)
             return BadRequest("Rating must be 1-5.");
 
-        var batch = await _db.Batch
-            .Include(b => b.Calendar)
-            .FirstOrDefaultAsync(b => b.BatchId == batchId);
-
-        if (batch == null)
-            return NotFound("Batch not found.");
-
-        // ✅ Ensure batch is finished
+        var batch = await _db.Batch.Include(b => b.Calendar)
+                                   .FirstOrDefaultAsync(b => b.BatchId == batchId);
+        if (batch == null) return NotFound("Batch not found.");
         if (batch.Calendar.EndDate > DateTime.UtcNow.Date)
             return BadRequest("Feedback can only be submitted after the batch has finished.");
 
-        // ✅ Prevent duplicate feedback from same user
         bool alreadySubmitted = await _db.Feedback
             .AnyAsync(f => f.BatchId == batchId && f.UserId == CurrentUserId);
         if (alreadySubmitted)
             return BadRequest("You have already submitted feedback for this batch.");
 
-        feedback.UserId = CurrentUserId;
-        feedback.BatchId = batchId;
-        feedback.SubmittedOn = DateTime.UtcNow;
+        var feedback = new Feedback
+        {
+            FeedbackText = dto.FeedbackText,
+            Rating = dto.Rating,
+            UserId = CurrentUserId,
+            BatchId = batchId,
+            SubmittedOn = DateTime.UtcNow
+        };
 
         _db.Feedback.Add(feedback);
         await _db.SaveChangesAsync();
@@ -51,10 +50,26 @@ public class FeedbackController : ControllerBase
         return CreatedAtAction(nameof(GetForBatch), new { batchId }, feedback);
     }
 
+
     [HttpGet("batch/{batchId:int}")]
-    [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<Feedback>>> GetForBatch(int batchId)
-        => await _db.Feedback.Where(f => f.BatchId == batchId)
-                             .Include(f => f.User)
-                             .AsNoTracking().ToListAsync();
+    [Authorize(Roles = "Administrator")]   
+    public async Task<ActionResult<IEnumerable<FeedbackReadDto>>> GetForBatch(int batchId)
+    {
+        var feedbacks = await _db.Feedback
+            .Where(f => f.BatchId == batchId)
+            .Include(f => f.User) 
+            .AsNoTracking()
+            .Select(f => new FeedbackReadDto
+            {
+                FeedbackId = f.FeedbackId,
+                FeedbackText = f.FeedbackText,
+                Rating = f.Rating,
+                SubmittedOn = f.SubmittedOn,
+                UserId = f.UserId,
+                Username = f.User.Username 
+            })
+            .ToListAsync();
+
+        return feedbacks;
+    }
 }
