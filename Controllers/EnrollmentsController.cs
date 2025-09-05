@@ -45,6 +45,7 @@ public class EnrollmentsController : ControllerBase
             enroll.EnrollmentId,
             User.Identity!.Name!,   
             batch.Calendar.Course.CourseName,
+            batch.BatchId,
             batch.BatchName,
             enroll.Status!,
             null
@@ -94,6 +95,7 @@ public class EnrollmentsController : ControllerBase
                 e.EnrollmentId,
                 e.User.Username,
                 e.Batch.Calendar.Course.CourseName,
+                e.Batch.BatchId,
                 e.Batch.BatchName,
                 e.Status!,
                 e.Manager != null ? e.Manager.Username : null
@@ -114,6 +116,28 @@ public class EnrollmentsController : ControllerBase
                 e.EnrollmentId,
                 e.User.Username,
                 e.Batch.Calendar.Course.CourseName,
+                e.Batch.BatchId,
+                e.Batch.BatchName,
+                e.Status!,
+                e.Manager != null ? e.Manager.Username : null
+            ))
+            .ToListAsync();
+
+        return Ok(result);
+    }
+    [HttpGet("mine")]
+    [Authorize(Roles = "Employee")]
+    public async Task<ActionResult<IEnumerable<EnrollmentDto>>> Mine()
+    {
+        var userId = CurrentUserId;
+        var result = await _db.Enrollment
+            .Where(e => e.UserId == userId)
+            .Include(e => e.Batch).ThenInclude(b => b.Calendar).ThenInclude(c => c.Course)
+            .Select(e => new EnrollmentDto(
+                e.EnrollmentId,
+                e.User.Username,
+                e.Batch.Calendar.Course.CourseName,
+                e.Batch.BatchId,
                 e.Batch.BatchName,
                 e.Status!,
                 e.Manager != null ? e.Manager.Username : null
@@ -123,7 +147,6 @@ public class EnrollmentsController : ControllerBase
         return Ok(result);
     }
 
-    
     [HttpGet("{id:int}")]
     [Authorize(Roles = "Employee,Manager,Administrator")]
     public async Task<ActionResult<EnrollmentDto>> GetById(int id)
@@ -140,6 +163,7 @@ public class EnrollmentsController : ControllerBase
             e.EnrollmentId,
             e.User.Username,
             e.Batch.Calendar.Course.CourseName,
+            e.Batch.BatchId,
             e.Batch.BatchName,
             e.Status!,
             e.Manager != null ? e.Manager.Username : null
