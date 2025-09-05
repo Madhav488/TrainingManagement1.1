@@ -54,13 +54,19 @@ public class EnrollmentsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = enroll.EnrollmentId }, dto);
     }
 
-
     [HttpPost("{id:int}/approve")]
-    [Authorize(Roles = "Manager,Administrator")]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Approve(int id)
     {
-        var e = await _db.Enrollment.FindAsync(id);
-        if (e is null) return NotFound();
+        var e = await _db.Enrollment
+            .Include(en => en.User)
+            .FirstOrDefaultAsync(en => en.EnrollmentId == id);
+
+        if (e == null) return NotFound();
+
+        // 🔹 ensure current manager is assigned manager of employee
+        if (e.User.ManagerId != CurrentUserId)
+            return Forbid("You are not this employee's manager.");
 
         e.Status = "Approved";
         e.ManagerId = CurrentUserId;
@@ -69,13 +75,19 @@ public class EnrollmentsController : ControllerBase
         return NoContent();
     }
 
-    
+
     [HttpPost("{id:int}/reject")]
     [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Reject(int id)
     {
-        var e = await _db.Enrollment.FindAsync(id);
-        if (e is null) return NotFound();
+        var e = await _db.Enrollment
+            .Include(en => en.User)
+            .FirstOrDefaultAsync(en => en.EnrollmentId == id);
+
+        if (e == null) return NotFound();
+
+        if (e.User.ManagerId != CurrentUserId)
+            return Forbid("You are not this employee's manager.");
 
         e.Status = "Rejected";
         e.ManagerId = CurrentUserId;
@@ -84,7 +96,7 @@ public class EnrollmentsController : ControllerBase
         return NoContent();
     }
 
-   
+
     [HttpGet("pending")]
     [Authorize(Roles = "Manager,Administrator")]
     public async Task<ActionResult<IEnumerable<EnrollmentDto>>> Pending()

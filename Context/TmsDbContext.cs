@@ -48,6 +48,10 @@ public class TmsDbContext : DbContext
                 .WithMany(r => r.Users)
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(x => x.Manager)
+                .WithMany(m => m.Employees)
+                .HasForeignKey(x => x.ManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Courses ---

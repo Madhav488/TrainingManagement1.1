@@ -27,27 +27,9 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register(RegisterRequest req)
-    {
-        var role = await _db.Roles.FirstAsync(r => r.RoleName == "Employee");
+    [ApiExplorerSettings(IgnoreApi = true)] // hides it from Swagger UI
+    public IActionResult BlockRegister() => Forbid();
 
-        if (await _db.Users.AnyAsync(u => u.Username == req.Username))
-            return Conflict("Username already exists.");
-
-        var user = new User
-        {
-            Username = req.Username,
-            Email = req.Email,
-            RoleId = role.RoleId,
-            CreatedOn = DateTime.UtcNow
-        };
-        user.PasswordHash = _hasher.HashPassword(user, req.Password);
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        var token = GenerateJwt(user, role.RoleName);
-        return Ok(new AuthResponse(token, user.UserId, user.Username, role.RoleName));
-    }
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest req)
@@ -74,6 +56,7 @@ public class AuthController : ControllerBase
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
             new(ClaimTypes.Role, roleName)
         };
