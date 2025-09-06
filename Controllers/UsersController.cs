@@ -77,4 +77,62 @@ public class UsersController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    [HttpGet("employees")]
+    public async Task<ActionResult<IEnumerable<object>>> GetEmployees()
+    {
+        var employees = await _db.Users
+            .Where(u => u.Role.RoleName == "Employee")
+            .Select(e => new {
+                e.UserId,
+                e.Username,
+                e.FirstName,
+                e.LastName,
+                Manager = e.Manager == null ? null : new { e.Manager.UserId, e.Manager.Username }
+            })
+            .ToListAsync();
+
+        return Ok(employees);
+    }
+
+    [HttpPost("assign")]
+    public async Task<IActionResult> AssignEmployee([FromQuery] int employeeId, [FromQuery] int managerId)
+    {
+        var employee = await _db.Users.FindAsync(employeeId);
+        if (employee == null) return NotFound("Employee not found");
+
+        employee.ManagerId = managerId;
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpPost("unassign/{employeeId}")]
+    public async Task<IActionResult> UnassignEmployee(int employeeId)
+    {
+        var employee = await _db.Users.FindAsync(employeeId);
+        if (employee == null) return NotFound("Employee not found");
+
+        employee.ManagerId = null;
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpGet("employee/{id}")]
+    public async Task<ActionResult<object>> GetEmployeeById(int id)
+    {
+        var e = await _db.Users
+            .Where(u => u.UserId == id && u.Role.RoleName == "Employee")
+            .Select(emp => new {
+                emp.UserId,
+                emp.Username,
+                emp.FirstName,
+                emp.LastName,
+                Manager = emp.Manager == null ? null : new { emp.Manager.UserId, emp.Manager.Username }
+            })
+            .FirstOrDefaultAsync();
+
+        if (e == null) return NotFound();
+        return Ok(e);
+    }
+
 }

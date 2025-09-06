@@ -181,4 +181,52 @@ public class EnrollmentsController : ControllerBase
             e.Manager != null ? e.Manager.Username : null
         );
     }
+    [HttpGet("employee/{employeeId:int}")]
+    [Authorize(Roles = "Administrator,Manager")]
+    public async Task<ActionResult<IEnumerable<EnrollmentDto>>> GetByEmployee(int employeeId)
+    {
+        var result = await _db.Enrollment
+            .Where(e => e.UserId == employeeId)
+            .Include(e => e.Batch).ThenInclude(b => b.Calendar).ThenInclude(c => c.Course)
+            .Select(e => new EnrollmentDto(
+                e.EnrollmentId,
+                e.User.Username,
+                e.Batch.Calendar.Course.CourseName,
+                e.Batch.BatchId,
+                e.Batch.BatchName,
+                e.Status!,
+                e.Manager != null ? e.Manager.Username : null
+            ))
+            .ToListAsync();
+
+        return Ok(result);
+    }
+    [HttpPost("enroll")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> EnrollEmployee([FromQuery] int employeeId, [FromQuery] int batchId)
+    {
+        var exists = await _db.Enrollment.AnyAsync(e => e.UserId == employeeId && e.BatchId == batchId);
+        if (exists) return BadRequest("Employee is already enrolled in this batch.");
+
+        var batch = await _db.Batch
+            .Include(b => b.Calendar).ThenInclude(c => c.Course)
+            .FirstOrDefaultAsync(b => b.BatchId == batchId);
+
+        if (batch == null) return NotFound("Batch not found.");
+
+        var enrollment = new Enrollment
+        {
+            UserId = employeeId,
+            BatchId = batchId,
+            Status = "Requested",
+            RequestedOn = DateTime.UtcNow
+        };
+
+        _db.Enrollment.Add(enrollment);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { enrollment.EnrollmentId, enrollment.Status });
+    }
+
+
 }
