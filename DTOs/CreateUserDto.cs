@@ -5,4 +5,6 @@
     public string? Email { get; set; }
     public string RoleName { get; set; } = null!;
     public int? ManagerId { get; set; }
+    public string? FirstName { get; set; }   // 👈 add
+    public string? LastName { get; set; }
 }

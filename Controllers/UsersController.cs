@@ -36,6 +36,8 @@ public class UsersController : ControllerBase
         {
             Username = dto.Username,
             Email = dto.Email,
+            FirstName = dto.FirstName,   // 👈 added
+            LastName = dto.LastName,
             RoleId = role.RoleId,
             CreatedOn = DateTime.UtcNow,
             ManagerId = role.RoleName == "Employee" ? dto.ManagerId : null

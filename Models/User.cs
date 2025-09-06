@@ -9,7 +9,8 @@ public class User
     public string? Email { get; set; }
     public int RoleId { get; set; }
     public DateTime? CreatedOn { get; set; }
-
+    public string? FirstName { get; set; }   // 👈 add
+    public string? LastName { get; set; }
     public int? ManagerId { get; set; }
     // Navigation
     public Role Role { get; set; } = null!;
