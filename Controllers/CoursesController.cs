@@ -15,9 +15,15 @@ public class CoursesController : ControllerBase
     public CoursesController(TmsDbContext db) => _db = db;
 
     [HttpGet]
-    [Authorize(Roles = "Administrator,Manager,Employee")] // anyone can view courses
+    [Authorize(Roles = "Administrator,Manager,Employee")]
     public async Task<ActionResult<IEnumerable<Course>>> GetAll()
-        => await _db.Courses.AsNoTracking().ToListAsync();
+    {
+        return await _db.Courses
+            .Include(c => c.Calendars)
+                .ThenInclude(cal => cal.Batches)
+            .AsNoTracking()
+            .ToListAsync();
+    }
 
     [HttpGet("{id:int}")]
     [Authorize(Roles = "Administrator,Manager,Employee")]
