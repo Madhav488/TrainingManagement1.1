@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Tms.Api.Data;
+using Tms.Api.Dtos;
 using Tms.Api.Models;
 
 namespace Tms.Api.Controllers;
@@ -116,4 +117,42 @@ public class BatchesController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+    [HttpGet("inactive")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<IEnumerable<Batch>>> Inactive()
+    {
+        var batches = await _db.Batch
+            .Where(b => !b.IsActive)
+            .Include(b => b.Calendar)
+                .ThenInclude(c => c.Course)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return Ok(batches);
+    }
+
+    [HttpGet("{id:int}/enrollments")]
+    [Authorize(Roles = "Administrator,Manager")]
+    public async Task<ActionResult<IEnumerable<EnrollmentDto>>> GetEnrollments(int id)
+    {
+        var enrollments = await _db.Enrollment
+            .Where(e => e.BatchId == id)
+            .Include(e => e.User)
+            .Include(e => e.Manager)
+            .Include(e => e.Batch).ThenInclude(b => b.Calendar).ThenInclude(c => c.Course)
+            .Select(e => new EnrollmentDto(
+                e.EnrollmentId,
+                e.User.Username,
+                e.Batch.Calendar.Course.CourseName,
+                e.Batch.BatchId,
+                e.Batch.BatchName,
+                e.Status!,
+                e.Manager != null ? e.Manager.Username : null
+            ))
+            .ToListAsync();
+
+        return Ok(enrollments);
+    }
+
+
 }

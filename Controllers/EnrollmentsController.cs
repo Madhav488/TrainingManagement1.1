@@ -228,5 +228,26 @@ public class EnrollmentsController : ControllerBase
         return Ok(new { enrollment.EnrollmentId, enrollment.Status });
     }
 
+    [HttpGet("batch/{batchId:int}")]
+    [Authorize(Roles = "Administrator,Manager")]
+    public async Task<ActionResult<IEnumerable<EnrollmentDto>>> GetByBatch(int batchId)
+    {
+        var result = await _db.Enrollment
+            .Where(e => e.BatchId == batchId)
+            .Include(e => e.User)
+            .Include(e => e.Batch).ThenInclude(b => b.Calendar).ThenInclude(c => c.Course)
+            .Select(e => new EnrollmentDto(
+                e.EnrollmentId,
+                e.User.Username,
+                e.Batch.Calendar.Course.CourseName,
+                e.Batch.BatchId,
+                e.Batch.BatchName,
+                e.Status!,
+                e.Manager != null ? e.Manager.Username : null
+            ))
+            .ToListAsync();
+
+        return Ok(result);
+    }
 
 }

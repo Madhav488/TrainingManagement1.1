@@ -12,8 +12,8 @@ public class CourseCalendar
     public DateTime EndDate { get; set; }     // mapped to SQL 'date'
 
     // Navigation
-    [JsonIgnore]
+    
     public Course? Course { get; set; } 
-    [JsonIgnore]
+    
     public ICollection<Batch> Batches { get; set; } = new List<Batch>();
 }

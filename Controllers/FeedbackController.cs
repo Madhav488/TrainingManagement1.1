@@ -72,4 +72,28 @@ public class FeedbackController : ControllerBase
 
         return feedbacks;
     }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<IEnumerable<FeedbackReadDto>>> GetAll()
+    {
+        var feedbacks = await _db.Feedback
+            .Include(f => f.User)
+            .Include(f => f.Batch).ThenInclude(b => b.Calendar).ThenInclude(c => c.Course)
+            .Select(f => new FeedbackReadDto
+            {
+                FeedbackId = f.FeedbackId,
+                FeedbackText = f.FeedbackText,
+                Rating = f.Rating,
+                SubmittedOn = f.SubmittedOn,
+                UserId = f.UserId,
+                Username = f.User.Username,
+                CourseName = f.Batch.Calendar.Course.CourseName,   // ✅ NEW
+                BatchName = f.Batch.BatchName
+            })
+            .ToListAsync();
+
+        return feedbacks;
+    }
+
 }
